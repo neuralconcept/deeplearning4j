@@ -17,11 +17,13 @@
 package org.deeplearning4j.plot;
 
 import org.apache.commons.io.IOUtils;
-import org.junit.Ignore;
 import org.junit.Test;
+import org.nd4j.linalg.api.buffer.DataBuffer;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.factory.Nd4j;
+import org.nd4j.linalg.indexing.NDArrayIndex;
 import org.springframework.core.io.ClassPathResource;
+
 
 import java.io.File;
 import java.util.List;
@@ -34,17 +36,20 @@ public class BarnesHutTsneTest {
     @Test
     public void testTsne() throws Exception {
         Nd4j.ENFORCE_NUMERICAL_STABILITY = true;
-        Nd4j.MAX_ELEMENTS_PER_SLICE = Integer.MAX_VALUE;
-        Nd4j.MAX_SLICES_TO_PRINT = Integer.MAX_VALUE;
-
+        Nd4j.factory().setDType(DataBuffer.DOUBLE);
+        Nd4j.getRandom().setSeed(123);
         BarnesHutTsne b = new BarnesHutTsne.Builder().stopLyingIteration(250)
-                .theta(0.5).learningRate(200).useAdaGrad(false)
+                .theta(0.5).learningRate(500).useAdaGrad(false)
                 .build();
+
         ClassPathResource resource = new ClassPathResource("/mnist2500_X.txt");
         File f = resource.getFile();
-        INDArray data = Nd4j.readTxt(f.getAbsolutePath(),"   ");
+        INDArray data = Nd4j.readTxt(f.getAbsolutePath(),"   ").get(NDArrayIndex.interval(0,100),NDArrayIndex.interval(0,784));
+
+
+
         ClassPathResource labels = new ClassPathResource("mnist2500_labels.txt");
-        List<String> labelsList = IOUtils.readLines(labels.getInputStream());
+        List<String> labelsList = IOUtils.readLines(labels.getInputStream()).subList(0,100);
         b.fit(data);
     }
 

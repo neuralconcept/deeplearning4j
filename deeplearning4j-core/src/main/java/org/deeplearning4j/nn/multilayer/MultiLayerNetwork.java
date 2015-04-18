@@ -298,6 +298,8 @@ public class MultiLayerNetwork implements Serializable, Classifier {
      * @param input the input matrix for training
      */
     public void initializeLayers(INDArray input) {
+
+
         if (input == null)
             throw new IllegalArgumentException("Unable to initialize neuralNets with empty input");
         int[] hiddenLayerSizes = getLayerWiseConfigurations().getHiddenLayerSizes();
@@ -341,6 +343,10 @@ public class MultiLayerNetwork implements Serializable, Classifier {
                 if (i == 0) {
                     inputSize = layerWiseConfigurations.getConf(0).getnIn();
                     numHiddenLayersSizesUsed++;
+                    if(input == null) {
+                        input = Nd4j.ones(inputSize);
+                        layerInput = input;
+                    }
                 }
                 else
                     inputSize = hiddenLayerSizes[numHiddenLayersSizesUsed - 1];
@@ -437,7 +443,7 @@ public class MultiLayerNetwork implements Serializable, Classifier {
      */
     public void initialize(DataSet data) {
         setInput(data.getFeatureMatrix());
-        feedForward(data.getFeatureMatrix());
+        feedForward(getInput());
         this.labels = data.getLabels();
         if (getOutputLayer() instanceof OutputLayer) {
             OutputLayer o = (OutputLayer) getOutputLayer();
@@ -494,7 +500,8 @@ public class MultiLayerNetwork implements Serializable, Classifier {
     public List<INDArray> feedForward(INDArray input) {
         if (input == null)
             throw new IllegalStateException("Unable to perform feed forward; no input found");
-
+        else if(this.getLayerWiseConfigurations().getInputPreProcess(0) != null)
+            this.input = getLayerWiseConfigurations().getInputPreProcess(0).preProcess(input);
         else
             this.input = input;
         return feedForward();
@@ -1085,12 +1092,12 @@ public class MultiLayerNetwork implements Serializable, Classifier {
 
 
         if (layerWiseConfigurations.isPretrain()) {
-            pretrain(examples);
+            pretrain(getInput());
             finetune(labels);
         }
 
         if(layerWiseConfigurations.isBackward())
-            doBackWard(examples,labels);
+            doBackWard(getInput(),labels);
 
     }
 
@@ -1333,9 +1340,13 @@ public class MultiLayerNetwork implements Serializable, Classifier {
      * @param input
      */
     public void setInput(INDArray input) {
-        if (input != null && this.layers == null)
-            this.initializeLayers(input);
+        if(getLayerWiseConfigurations().getInputPreProcess(0) != null)
+            this.input = this.layerWiseConfigurations.getInputPreProcess(0).preProcess(input);
         else
+            this.input =  input;
+        if ( this.layers == null)
+            this.initializeLayers(getInput());
+        else if(this.input == null)
             this.input = input;
 
     }
